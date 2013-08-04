@@ -12,10 +12,12 @@ from django.conf import settings
 import os
 import re
 import string
-
+import sys
 
 def get_module_dirpath(module_name):
-    return os.path.realpath(os.path.dirname(__import__(module_name).__file__))
+    module_init_path = sys.modules[module_name].__file__
+    path = os.path.realpath(os.path.dirname(module_init_path))
+    return path
 
 PROJECT_ROOT = get_module_dirpath(os.environ['DJANGO_SETTINGS_MODULE'])
 
