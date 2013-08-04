@@ -19,7 +19,6 @@ def get_module_dirpath(module_name):
     path = os.path.realpath(os.path.dirname(module_init_path))
     return path
 
-PROJECT_ROOT = get_module_dirpath(os.environ['DJANGO_SETTINGS_MODULE'])
 
 # http://sphinx.pocoo.org/rest.html#sections
 # I've numbered these in HTML style from 1 to 6
@@ -48,8 +47,9 @@ class ModulesWriter(object):
     Generates an auto_modules.rst file referencing all the app's automodules
     """
 
-    def __init__(self, docs_root, filename, doc_title, internal_title, external_title,
+    def __init__(self, project_root, docs_root, filename, doc_title, internal_title, external_title,
                  automodule_options, excluded_modules, excluded_apps):
+        self.project_root = project_root
         self.docs_root = docs_root
         self.filename = filename
         self.doc_title = doc_title
@@ -144,7 +144,7 @@ class ModulesWriter(object):
         """
         for name in search_apps:
             if not self._should_exclude(name):
-                self.add_app(App(name, self.excluded_modules))
+                self.add_app(App(name, self.excluded_modules, self.project_root))
 
     def add_app(self, app):
         """
@@ -177,11 +177,11 @@ class App(object):
     Handlings processing a django app with its name and the list of python files it contains
     """
 
-    def __init__(self, name, excluded_modules):
+    def __init__(self, name, excluded_modules, project_root):
         self.name = name
         self.excluded_modules = excluded_modules
 
-        self.is_internal = os.path.exists(os.path.join(PROJECT_ROOT, *name.split('.')))
+        self.is_internal = os.path.exists(os.path.join(project_root, *name.split('.')))
         self.modules = self.get_modules()
 
     def get_modules(self):
@@ -215,6 +215,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Define some variables
+        PROJECT_ROOT = getattr(settings, "GIZA_PROJECT_ROOT", 
+            get_module_dirpath(os.environ['DJANGO_SETTINGS_MODULE']))
+        
         try:
             docs_root = os.path.join(PROJECT_ROOT, args[0])
         except IndexError:
@@ -241,6 +244,7 @@ class Command(BaseCommand):
         ])
 
         modules_writer = ModulesWriter(
+            project_root=PROJECT_ROOT,
             docs_root=docs_root,
             filename=filename,
             doc_title=doc_title,
